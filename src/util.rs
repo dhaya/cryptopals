@@ -1,7 +1,9 @@
 extern crate base64;
 
-use hex::{FromHex, FromHexError, ToHex};
+use hex::{FromHex, FromHexError};
 use base64::encode;
+use std::fs::File;
+use std::path::PathBuf;
 
 pub fn hex_to_base64(input: &str) -> Result<String, FromHexError> {
     match Vec::from_hex(input) {
@@ -30,14 +32,14 @@ pub fn xor_bytes(v1: &[u8], v2: &[u8]) -> Vec<u8> {
 
 
 fn magnitude(v: &[u32]) -> f32 {
-    let mut out: u32 = 0;
+    let mut out: f32 = 0.0;
 
     for b in v {
         let x = *b;
-        out += x * x;
+        out += x as f32 * x as f32;
     }
 
-    return (out as f32).sqrt();
+    return out.sqrt().abs();
 }
 
 pub fn cosign_similarity(v1: &[u32], v2: &[u32]) -> f32 {
@@ -45,41 +47,25 @@ pub fn cosign_similarity(v1: &[u32], v2: &[u32]) -> f32 {
     let it = v1.iter().zip(v2.iter());
 
     let mut res: u32 = 0;
-    for (x, y) in it {
+    for (i, (x, y)) in it.enumerate() {
+//        if (*x > 0) && (!is_printable(i as u8)) {
+//            return -1_f32;
+//        }
         res += (*x * *y);
     }
     return res as f32/(magnitude(v1) * magnitude(v2));
 }
 
-pub struct CharFrequency([u32; 256]);
-
-impl CharFrequency {
-    pub fn from_text(text: &[u8]) -> CharFrequency {
-        let mut freq = [0 as u32; 256];
-
-        for b in text {
-            freq[*b as usize] += 1;
-        }
-        return CharFrequency(freq);
-    }
-
-    pub fn score(&self, base: &CharFrequency) -> f32 {
-        return cosign_similarity(&self.0, &base.0);
-    }
+pub fn is_printable(ch: u8) -> bool {
+    return ch >= 0x20 && ch <= 0x72;
 }
 
-pub fn repeating_key_xor(text: &[u8], key: &[u8]) -> Vec<u8> {
-    let mut output = Vec::new();
-
-    let mut index = 0 as usize;
-    let key_len = key.len();
-    while index < text.len() {
-        output.push(text[index] ^ key[index % key_len]);
-        index += 1;
-    }
-
-    return output;
+#[test]
+fn test_printable() {
+    assert!(!is_printable(0x1b));
+    assert!(is_printable(0x20));
 }
+
 
 pub fn hamming_distance(buf1: &[u8], buf2: &[u8]) -> u32 {
     let b1 = buf1.into_iter();
@@ -93,16 +79,13 @@ pub fn hamming_distance(buf1: &[u8], buf2: &[u8]) -> u32 {
     return distance;
 }
 
-pub fn transpose(buf: &[u8], slice_len: u32) -> Vec<Vec<u8>> {
-    let l = slice_len;
+pub fn from_elem<T: Copy>(elem: T, n: usize) -> Vec<T> {
+    let mut out = Vec::new();
 
-    let index = 0u32;
-    while index < buf.len() {
-
+    for i in 0..n {
+        out.push(elem.clone());
     }
-    unimplemented!()
-
-
+    return out;
 }
 
 
@@ -114,7 +97,7 @@ fn popcount_test() {
 }
 
 #[test]
-fn hammiing_test() {
+fn hamming_test() {
     assert_eq!(hamming_distance("this is a test".as_ref(), "wokka wokka!!!".as_ref()), 37);
 }
 
