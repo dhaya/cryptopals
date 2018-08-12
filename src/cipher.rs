@@ -1,23 +1,23 @@
-use util::*;
 use charfreq::*;
-use std::cmp;
 use openssl::symm::{decrypt, Cipher};
+use std::cmp;
 use std::num;
+use util::*;
 
 pub struct SingleCharCipher {
-    pub text: Vec<u8>
+    pub text: Vec<u8>,
 }
 
 pub struct DecryptResult<T> {
     pub decrypted: String,
     pub score: f32,
-    pub key: T
+    pub key: T,
 }
 
 impl SingleCharCipher {
     pub fn from_encrypted_text(buf: &[u8]) -> Self {
         SingleCharCipher {
-            text: Vec::from(buf)
+            text: Vec::from(buf),
         }
     }
 
@@ -25,9 +25,7 @@ impl SingleCharCipher {
         let key_buf = from_elem(key, buf.len());
         let encrypted = xor_bytes(buf, key_buf.as_ref());
 
-        return SingleCharCipher {
-            text: encrypted
-        }
+        return SingleCharCipher { text: encrypted };
     }
 
     pub fn decrypt(&self) -> DecryptResult<u8> {
@@ -45,7 +43,9 @@ impl SingleCharCipher {
 
             if score > max_score {
                 max_score = score;
-                max_score_string = ::std::str::from_utf8(decrypted.as_ref()).unwrap_or("").to_owned();
+                max_score_string = ::std::str::from_utf8(decrypted.as_ref())
+                    .unwrap_or("")
+                    .to_owned();
                 key_byte = b;
             }
 
@@ -58,21 +58,18 @@ impl SingleCharCipher {
         return DecryptResult {
             decrypted: max_score_string,
             score: max_score,
-            key: key_byte
-        }
+            key: key_byte,
+        };
     }
 }
 
 pub struct RepeatingKeyCipher {
-    pub text: Vec<u8>
+    pub text: Vec<u8>,
 }
-
 
 impl RepeatingKeyCipher {
     pub fn from_encrypted_text(encrypted: Vec<u8>) -> Self {
-        return RepeatingKeyCipher {
-            text: encrypted
-        }
+        return RepeatingKeyCipher { text: encrypted };
     }
 
     pub fn encrypt(buf: &[u8], key: &[u8]) -> Self {
@@ -92,27 +89,29 @@ impl RepeatingKeyCipher {
         return RepeatingKeyCipher::encrypt(self.text.as_ref(), key).text;
     }
 
-
     pub fn possible_keylengths(&self, buf: &[u8]) -> Vec<usize> {
         let n = buf.len();
-        let max = cmp::min(40, n/4);
+        let max = cmp::min(40, n / 4);
 
         let mut scores: Vec<(f32, usize)> = vec![];
 
         for keysize in 2..max {
             let mut hd: Vec<u32> = vec![];
             for i in 0..4 {
-                for j in i+1..4 {
+                for j in i + 1..4 {
                     let first = i * keysize;
                     let second = j * keysize;
 
-                    let dist = hamming_distance(&buf[first..first+keysize], &buf[second..second+keysize]);
+                    let dist = hamming_distance(
+                        &buf[first..first + keysize],
+                        &buf[second..second + keysize],
+                    );
                     hd.push(dist);
                 }
             }
             let sum: u32 = hd.iter().sum();
             let score: f32 = sum as f32 / (hd.len() as f32);
-            scores.push((score/(keysize as f32), keysize));
+            scores.push((score / (keysize as f32), keysize));
         }
         scores.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
@@ -121,7 +120,6 @@ impl RepeatingKeyCipher {
         }
         return scores.iter().map(|x| x.1).collect();
     }
-
 
     fn transpose(&self, buf: &[u8], slice_len: usize) -> Vec<SingleCharCipher> {
         fn collect_bytes(buf: &[u8], step: usize) -> SingleCharCipher {
@@ -138,9 +136,7 @@ impl RepeatingKeyCipher {
                 }
             }
 
-            return SingleCharCipher {
-                text: result
-            }
+            return SingleCharCipher { text: result };
         }
 
         let mut result: Vec<SingleCharCipher> = Vec::new();
@@ -166,7 +162,7 @@ impl RepeatingKeyCipher {
         return DecryptResult {
             decrypted: "".to_owned(),
             score: score,
-            key: keys
+            key: keys,
         };
     }
 
@@ -192,8 +188,8 @@ impl RepeatingKeyCipher {
         return DecryptResult {
             decrypted: String::from_utf8(decrypted).unwrap(),
             key: result.key,
-            score: result.score
-        }
+            score: result.score,
+        };
     }
 }
 
@@ -223,13 +219,10 @@ impl<'a> Block<'a> {
         let mut res: Vec<Block> = Vec::new();
 
         for b in 0..num_blocks {
-            let block = Block::from_buf(&buf[b*size..(b+1)*size]);
+            let block = Block::from_buf(&buf[b * size..(b + 1) * size]);
             res.push(block);
         }
 
         return res;
     }
 }
-
-
-

@@ -1,27 +1,26 @@
-extern crate hex;
 extern crate base64;
+extern crate hex;
 #[macro_use]
 extern crate lazy_static;
 extern crate openssl;
 
-mod util;
 mod charfreq;
 mod cipher;
+mod util;
 
 mod tests {
-    use util::*;
     use std::fs::File;
-    use std::path::PathBuf;
-    use std::io::BufReader;
     use std::io::prelude::*;
+    use std::io::BufReader;
+    use std::path::PathBuf;
+    use util::*;
 
-    use hex::{FromHex, FromHexError, ToHex, encode, decode};
-    use std::collections::HashSet;
-    use std::iter::FromIterator;
+    use base64;
     use charfreq::*;
     use cipher::*;
-    use base64;
-
+    use hex::{decode, encode, FromHex, FromHexError, ToHex};
+    use std::collections::HashSet;
+    use std::iter::FromIterator;
 
     #[test]
     fn hex_base64_test() {
@@ -45,13 +44,9 @@ mod tests {
         assert_eq!(output, "746865206b696420646f6e277420706c6179");
     }
 
-
-
     fn hex_decrypt(input: &[u8]) -> DecryptResult<u8> {
         let v1 = Vec::from_hex(input).unwrap();
-        let cipher = SingleCharCipher {
-            text: v1
-        };
+        let cipher = SingleCharCipher { text: v1 };
 
         return cipher.decrypt();
     }
@@ -83,7 +78,6 @@ mod tests {
         assert_eq!(scores[0].decrypted, "Now that the party is jumping\n");
     }
 
-
     #[test]
     fn repeating_xor_test() {
         let input = "Burning 'em, if you ain't quick and nimble
@@ -100,7 +94,7 @@ I go crazy when I hear a cymbal";
 
     pub fn break_repeating_key() {
         let encrypted = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f";
-        let buf  = decode(encrypted).unwrap();
+        let buf = decode(encrypted).unwrap();
 
         let cipher = RepeatingKeyCipher::from_encrypted_text(Vec::from(buf));
         let res = cipher.decrypt();
@@ -126,7 +120,10 @@ I go crazy when I hear a cymbal";
         println!("{}", res.score);
         println!("{}", res.key.len());
         println!("{}", String::from_utf8(res.key.clone()).unwrap());
-        assert_eq!("Terminator X: Bring the noise", String::from_utf8(res.key).unwrap());
+        assert_eq!(
+            "Terminator X: Bring the noise",
+            String::from_utf8(res.key).unwrap()
+        );
     }
 
     #[test]
@@ -157,12 +154,12 @@ I go crazy when I hear a cymbal";
 
         for line in BufReader::new(f).lines() {
             let l = line.unwrap();
-            let cipher = decode( &l).unwrap();
+            let cipher = decode(&l).unwrap();
             let blocks = Block::blocks(&cipher);
 
             let mut same = 0u32;
             for (i, b) in blocks.iter().enumerate() {
-                for j in (i+1..blocks.len()) {
+                for j in (i + 1..blocks.len()) {
                     if blocks[i].distance(&blocks[j]) == 0 {
                         same += 1;
                     }
@@ -179,7 +176,6 @@ I go crazy when I hear a cymbal";
         assert_eq!(max_line, "d880619740a8a19b7840a8a31c810a3d08649af70dc06f4fd5d2d69c744cd283e2dd052f6b641dbf9d11b0348542bb5708649af70dc06f4fd5d2d69c744cd2839475c9dfdbc1d46597949d9c7e82bf5a08649af70dc06f4fd5d2d69c744cd28397a93eab8d6aecd566489154789a6b0308649af70dc06f4fd5d2d69c744cd283d403180c98c8f6db1f2a3f9c4040deb0ab51b29933f2c123c58386b06fba186a")
     }
 }
-
 
 fn main() {
     self::tests::identify_aes_mode();

@@ -1,7 +1,7 @@
 extern crate base64;
 
-use hex::{FromHex, FromHexError};
 use base64::encode;
+use hex::{FromHex, FromHexError};
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -30,7 +30,6 @@ pub fn xor_bytes(v1: &[u8], v2: &[u8]) -> Vec<u8> {
     return out;
 }
 
-
 fn magnitude(v: &[u32]) -> f32 {
     let mut out: f32 = 0.0;
 
@@ -48,12 +47,12 @@ pub fn cosign_similarity(v1: &[u32], v2: &[u32]) -> f32 {
 
     let mut res: u32 = 0;
     for (i, (x, y)) in it.enumerate() {
-//        if (*x > 0) && (!is_printable(i as u8)) {
-//            return -1_f32;
-//        }
+        //        if (*x > 0) && (!is_printable(i as u8)) {
+        //            return -1_f32;
+        //        }
         res += (*x * *y);
     }
-    return res as f32/(magnitude(v1) * magnitude(v2));
+    return res as f32 / (magnitude(v1) * magnitude(v2));
 }
 
 pub fn is_printable(ch: u8) -> bool {
@@ -65,7 +64,6 @@ fn test_printable() {
     assert!(!is_printable(0x1b));
     assert!(is_printable(0x20));
 }
-
 
 pub fn hamming_distance(buf1: &[u8], buf2: &[u8]) -> u32 {
     let b1 = buf1.into_iter();
@@ -88,7 +86,6 @@ pub fn from_elem<T: Copy>(elem: T, n: usize) -> Vec<T> {
     return out;
 }
 
-
 #[test]
 fn popcount_test() {
     assert_eq!(0b11100000u8.count_ones(), 3);
@@ -98,6 +95,8 @@ fn popcount_test() {
 
 #[test]
 fn hamming_test() {
-    assert_eq!(hamming_distance("this is a test".as_ref(), "wokka wokka!!!".as_ref()), 37);
+    assert_eq!(
+        hamming_distance("this is a test".as_ref(), "wokka wokka!!!".as_ref()),
+        37
+    );
 }
-

@@ -1,7 +1,7 @@
-use std::fs::File;
-use std::path::PathBuf;
-use std::io::Read;
 use super::util::*;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 
 pub struct CharFrequency([u32; 256]);
 
@@ -28,7 +28,9 @@ pub fn base_frequency() -> Result<CharFrequency, ::std::io::Error> {
 
     let mut contents = String::new();
     f.read_to_string(&mut contents);
-    return Ok(CharFrequency::from_text(contents.to_ascii_lowercase().as_ref()));
+    return Ok(CharFrequency::from_text(
+        contents.to_ascii_lowercase().as_ref(),
+    ));
 }
 
 lazy_static! {
