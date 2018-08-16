@@ -1,8 +1,9 @@
 use charfreq::*;
-use openssl::symm::{decrypt, Cipher};
+use openssl::symm::{decrypt, Cipher, Crypter, Mode};
 use std::cmp;
 use std::num;
 use util::*;
+use std::iter::FromIterator;
 
 pub struct SingleCharCipher {
     pub text: Vec<u8>,
@@ -193,11 +194,86 @@ impl RepeatingKeyCipher {
     }
 }
 
-pub fn decrpyt_aes(text: &[u8], key: &str) -> String {
+pub fn decrpyt_aes(text: &[u8], key: &str) -> Vec<u8> {
     let cipher = Cipher::aes_128_ecb();
 
     let res = decrypt(cipher, key.as_ref(), None, text);
-    return String::from_utf8(res.unwrap()).unwrap();
+    return res.unwrap();
+}
+
+pub fn decrypt_aes_ecb(text: &[u8], key: &str) -> Vec<u8> {
+    let cipher = Cipher::aes_128_ecb();
+    let mut decrypter = Crypter::new(
+        Cipher::aes_128_ecb(),
+        Mode::Decrypt,
+        key.as_ref(),
+        None,
+    ).unwrap();
+    decrypter.pad(false);
+    
+    let data_len = text.len();
+    let block_size = Cipher::aes_128_ecb().block_size();
+
+    let mut plaintext = vec![0u8; data_len + block_size];
+    let mut count = decrypter.update(text, &mut plaintext).unwrap();
+    count += decrypter.finalize(&mut plaintext[count..]).unwrap();
+    plaintext.truncate(count);
+
+    return plaintext;
+}
+
+pub fn encrypt_aes_ecb(plain: &[u8], key: &str) -> Vec<u8> {
+    let cipher = Cipher::aes_128_ecb();
+    let mut encrypter = Crypter::new(
+        cipher,
+        Mode::Encrypt,
+        key.as_ref(),
+        None
+    ).unwrap();
+    encrypter.pad(false);
+
+    let data_len = plain.len();
+    let block_size = cipher.block_size();
+    let iv = vec![0u8; block_size];
+
+    let mut ciphertext = vec![0u8; data_len + block_size];
+
+    let mut count = encrypter.update(plain, &mut ciphertext).unwrap();
+    ciphertext.truncate(count);
+    return ciphertext;
+}
+
+#[test]
+fn aes_test() {
+    let input = "Hello world! How are you?";
+    let key = "SECRET PASSWORD!";
+
+    let padded = pad(input.as_ref(), 16);
+    let cipher = encrypt_aes_ecb(padded.as_ref(), key);
+    let plain = decrypt_aes_ecb(cipher.as_ref(), key);
+    let unpadded = unpad(plain.as_ref());
+
+    assert_eq!(String::from_utf8(unpadded).unwrap(), input);
+}
+
+pub fn pad(text: &[u8], block_size: usize) -> Vec<u8> {
+    let pad_len = match text.len() % block_size {
+        0 => block_size,
+        k => block_size - k,
+    };
+
+
+    let mut res = Vec::from(text);
+    for b in 0..pad_len {
+        res.push(pad_len as u8);
+    }
+    return res;
+}
+
+pub fn unpad(text: &[u8]) ->  Vec<u8> {
+    let pad_len = text[text.len() - 1] as usize;
+
+    return Vec::from(&text[0..text.len() - pad_len]);
 }
 
 pub struct Block<'a>(&'a [u8]);
@@ -226,3 +302,54 @@ impl<'a> Block<'a> {
         return res;
     }
 }
+
+
+pub fn decrypt_aes_cbc(cipher: &[u8], key: &str) ->  Vec<u8> {
+    let mut res: Vec<u8> = Vec::new();
+
+    let iv = [0u8; 16];
+
+    let mut prev_c = iv.as_ref();
+
+    for b in Block::blocks(cipher) {
+        let d = decrypt_aes_ecb(b.0, key);
+        let mut p = xor_bytes(&d, prev_c);
+        res.append(&mut p);
+        prev_c = b.0;
+    }
+    return res;
+}
+
+
+#[derive(Debug)]
+pub enum CipherMode {
+    ECB,
+    CBC
+}
+
+#[derive(Debug)]
+pub struct EncryptResult {
+    pub cipher: Vec<u8>,
+    mode: CipherMode
+}
+
+impl EncryptResult {
+    pub fn is_mode(&self, mode: CipherMode) -> bool {
+        return self.mode == mode;
+    }
+}
+
+pub fn encrypt_random_mode(plain: &[u8]) -> EncryptResult {
+    return EncryptResult { cipher: Vec::new(), mode: CipherMode::CBC };
+}
+
+
+
+
+
+
+
+
+
+
+

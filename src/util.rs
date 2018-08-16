@@ -4,6 +4,7 @@ use base64::encode;
 use hex::{FromHex, FromHexError};
 use std::fs::File;
 use std::path::PathBuf;
+use std::rand::{self, Rng};
 
 pub fn hex_to_base64(input: &str) -> Result<String, FromHexError> {
     match Vec::from_hex(input) {
@@ -99,4 +100,19 @@ fn hamming_test() {
         hamming_distance("this is a test".as_ref(), "wokka wokka!!!".as_ref()),
         37
     );
+}
+
+
+fn main() {
+    let s = rand::thread_rng()
+        .gen_ascii_chars()
+        .take(10)
+        .collect::<String>();
+
+    println!("random string: {}", s);
+}
+
+pub fn gen_random_bytes(num_bytes: usize) -> Vec<u8> {
+    rand::
+    unimplemented!()
 }
